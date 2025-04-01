@@ -3,7 +3,9 @@ package pl.me.jhonylemon;
 import com.diogonunes.jcolor.Attribute;
 
 import java.text.MessageFormat;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 
 import static com.diogonunes.jcolor.Ansi.colorize;
@@ -16,19 +18,6 @@ public class VialPrinter {
         System.out.print("\n----------------------\n");
     }
 
-    public static void movement(Movement movement) {
-        if (movement != null) {
-            line();
-            System.out.print(MessageFormat.format(
-                    "Moving {0} from {1} to {2}",
-                    movement.getMarbles(),
-                    movement.getVialIndexFrom(),
-                    movement.getVialIndexTo())
-            );
-            line();
-
-        }
-    }
 
     public static void print(Node node) {
         List<Movement> movements = new ArrayList<>();
@@ -44,7 +33,26 @@ public class VialPrinter {
         System.out.print(MessageFormat.format("{0} moves", movements.reversed()));
     }
 
-    public static void print(List<Vial> vials) {
+    public static void print(Vials vials, Node node) {
+        Deque<Movement> movements = new ArrayDeque<>();
+        movements.push(node.getMovement());
+        Node parent = node.getParent();
+        while (parent != null) {
+            Movement movement = parent.getMovement();
+            if (movement != null) {
+                movements.push(movement);
+            }
+            parent = parent.getParent();
+        }
+
+        for (Movement movement : movements) {
+            vials.move(movement.getVialIndexFrom(), movement.getVialIndexTo());
+            print(vials);
+        }
+    }
+
+    public static void print(Vials vialsObject) {
+        List<Vial> vials = vialsObject.getVials();
         if (!areSameSize(vials)) {
             throw new AssertionError("Vials are not the same size");
         }
@@ -105,4 +113,5 @@ public class VialPrinter {
         }
         return true;
     }
+
 }

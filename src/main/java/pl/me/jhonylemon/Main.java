@@ -3,6 +3,7 @@ package pl.me.jhonylemon;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Main {
 
@@ -98,27 +99,55 @@ public class Main {
 
     private static final Vials vialsObject = new Vials(vials);
 
-    private static final Vials vialsObjects01 = new Vials(List.of(
-            new Vial(List.of(
-                    Color.LIGHT_GREEN,
-                    Color.LIGHT_GREEN,
-                    Color.GRAY,
-                    Color.GRAY
-            ),4, 0),
-            new Vial(List.of(
-                    Color.GRAY,
-                    Color.GRAY,
-                    Color.LIGHT_GREEN,
-                    Color.LIGHT_GREEN
-            ),4, 1),
-            new Vial(4,2)
-    ));
+    private static Vials vis = new Vials(
+            List.of(
+                    new Vial(List.of(
+                            Color.LIGHT_BLUE,
+                            Color.DARK_PINK,
+                            Color.RED,
+                            Color.LIGHT_PINK
+                    ), 4,0),
+                    new Vial(List.of(
+                            Color.RED,
+                            Color.LIGHT_BLUE,
+                            Color.RED,
+                            Color.LIGHT_PINK
+                    ), 4,1),
+                    new Vial(List.of(
+                            Color.LIGHT_BLUE,
+                            Color.LIGHT_BLUE,
+                            Color.DARK_PINK,
+                            Color.LIGHT_PINK
+                    ), 4,2),
+                    new Vial(List.of(
+                            Color.DARK_PINK,
+                            Color.DARK_PINK,
+                            Color.RED,
+                            Color.LIGHT_PINK
+                    ), 4,3),
+                    new Vial(4,4),
+                    new Vial(4,5)
+            )
+    );
 
     public static void main(String[] args) {
-        VialPrinter.print(vialsObject.getVials());
+        Vials vials = vis.copy();
+        Vials print = vis.copy();
+
+        VialPrinter.print(vials);
         System.out.println("Starting search...");
-        Node root = new Node(vialsObject, null, 0, null);
+
+        Solver solver = new DepthFirstSearch();
+        Node node = solver.solve(vials);
         System.out.println("Finished search.");
+
+        if (Objects.isNull(node)) {
+            System.out.println("No solution found.");
+        } else {
+            System.out.println("Solution found:");
+            VialPrinter.print(node);
+            VialPrinter.print(print, node);
+        }
     }
 
 }

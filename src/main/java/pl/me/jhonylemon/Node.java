@@ -2,57 +2,48 @@ package pl.me.jhonylemon;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
-import static pl.me.jhonylemon.VialPrinter.print;
 
 public class Node {
-    private final Vials vials;
     private final Movement movement;
-    private final Integer depth;
     private final Node parent;
     private final List<Node> children;
 
-    public Node(Vials vials, Movement movement, Integer depth, Node parent) {
-        this.vials = vials;
+    public Node(Movement movement, Node parent) {
         this.movement = movement;
-        this.depth = depth;
         this.parent = parent;
         this.children = new ArrayList<>();
-        generateChildren();
-        if (children.isEmpty() && vials.isSameColor()) {
-            print(this);
-        }
+    }
+
+    public void add(Node children) {
+        this.children.add(children);
+    }
+
+    public boolean isChildrenEmpty() {
+        return this.children.isEmpty();
+    }
+
+    private void remove(Node children) {
+        this.children.remove(children);
+    }
+
+    public void removeFromParent() {
+        this.parent.remove(this);
+    }
+
+    public Node getChild(int index) {
+        return children.get(index);
+    }
+
+    public boolean isSolution(Vials vials) {
+        return children.isEmpty() && vials.isSameColor();
     }
 
     public Node getParent() {
         return parent;
     }
 
-    public Integer getDepth() {
-        return depth;
-    }
-
     public Movement getMovement() {
         return movement;
-    }
-
-    public List<Vial> getVials() {
-        return vials.getVials();
-    }
-
-    public void generateChildren() {
-        vials.stream().map(nodeCreation()).forEach(children::add);
-    }
-
-    private Function<Map.Entry<Vials, Movement>, Node> nodeCreation() {
-        return e -> new Node(
-                e.getKey(),
-                e.getValue(),
-                this.depth+1,
-                this
-        );
     }
 
 }
