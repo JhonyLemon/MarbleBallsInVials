@@ -1,5 +1,7 @@
 package pl.me.jhonylemon;
 
+import pl.me.jhonylemon.vial.Vials;
+
 /**
  * Abstract class representing a solver for the Vials game.
  */

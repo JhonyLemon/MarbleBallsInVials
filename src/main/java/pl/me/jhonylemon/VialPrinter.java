@@ -1,6 +1,7 @@
 package pl.me.jhonylemon;
 
 import com.diogonunes.jcolor.Attribute;
+import pl.me.jhonylemon.vial.Vials;
 
 import java.text.MessageFormat;
 import java.util.ArrayDeque;
@@ -46,25 +47,25 @@ public class VialPrinter {
         }
 
         for (Movement movement : movements) {
-            vials.move(movement.getVialIndexFrom(), movement.getVialIndexTo());
+            vials.applyMovement(movement);
             print(vials);
+            System.out.print("Movement: "+ movement);
         }
     }
 
     public static void print(Vials vialsObject) {
-        List<Vial> vials = vialsObject.getVials();
-        if (!areSameSize(vials)) {
-            throw new AssertionError("Vials are not the same size");
-        }
+        List<List<Attribute>> vials = vialsObject.getPrintableContents();
 
         line();
 
         if (vials.isEmpty()) {
             System.out.println("No vials to display.");
         } else {
-            int maxSize = vials.getFirst().getMaxCapacity();
+            int maxSize = vials.stream()
+                    .mapToInt(List::size)
+                    .max()
+                    .orElseThrow();
             List<List<Attribute>> printableContents = vials.stream()
-                    .map(Vial::getPrintableContents)
                     .map(pc -> {
                         List<Attribute> attributes = new ArrayList<>(pc);
                         while (attributes.size() < maxSize) {
@@ -99,19 +100,6 @@ public class VialPrinter {
         }
 
         line();
-    }
-
-    private static boolean areSameSize(List<Vial> vials) {
-        if (vials.isEmpty()) {
-            return true;
-        }
-        int maxSize = vials.getFirst().getMaxCapacity();
-        for (Vial vial : vials) {
-            if (vial.getMaxCapacity() != maxSize) {
-                return false;
-            }
-        }
-        return true;
     }
 
 }
