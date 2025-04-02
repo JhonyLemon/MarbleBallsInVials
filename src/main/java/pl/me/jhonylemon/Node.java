@@ -9,11 +9,21 @@ public class Node {
     private final Movement movement;
     private final Node parent;
     private final List<Node> children;
+    private final Long depth;
 
-    public Node(Movement movement, Node parent) {
+    public Node(Movement movement, Node parent, Long depth) {
         this.movement = movement;
         this.parent = parent;
         this.children = new ArrayList<>();
+        this.depth = depth;
+    }
+
+    public Long childDepth() {
+        return depth+1;
+    }
+
+    public Long getDepth() {
+        return depth;
     }
 
     public void add(Node children) {

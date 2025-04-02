@@ -3,11 +3,10 @@ package pl.me.jhonylemon;
 import pl.me.jhonylemon.vial.Vials;
 
 import java.time.Duration;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -15,7 +14,7 @@ import java.util.function.Function;
  * Depth First Search (DFS) algorithm for solving the Vials game.
  * This class extends the Solver class and implements the solve method.
  */
-public class DepthFirstSearch extends Solver{
+public class DepthFirstSearch extends Solver {
 
     private final ForkJoinPool pool = new ForkJoinPool();
 
@@ -27,28 +26,9 @@ public class DepthFirstSearch extends Solver{
     public Node solve(Vials vials) {
         long startTime = System.nanoTime();
 
-        Node root = new Node(null, null);
-        Deque<Node> stack = new ArrayDeque<>();
-        stack.push(root);
-
-        while(!isSolution(stack, vials)) {
-            Node currentRoot = stack.peek();
-
-            if (Objects.isNull(currentRoot)) {
-                throw new AssertionError("Root node is null!");
-            }
-
-            vials.generatePossibleMoves().map(createChildNode(currentRoot)).forEach(addToStackAndParent(stack, currentRoot));
-
-            Node newRoot = stack.peek();
-            if (Objects.nonNull(newRoot) && !currentRoot.isChildrenEmpty()) {
-                vials.applyMovement(newRoot.getMovement());
-            } else {
-                stack.pop();
-                currentRoot.removeFromParent();
-                vials.reverseMove();
-            }
-        }
+        AtomicBoolean solutionFound = new AtomicBoolean(false);
+        Node root = new Node(null, null, 0L);
+        Node outcome = pool.invoke(new Task(root, vials.copy(), solutionFound));
 
         long endTime = System.nanoTime();
         Duration duration = Duration.ofNanos(endTime - startTime);
@@ -60,7 +40,7 @@ public class DepthFirstSearch extends Solver{
                 duration.toNanosPart()
         );
 
-        return stack.peek();
+        return outcome;
     }
 
 
@@ -73,7 +53,7 @@ public class DepthFirstSearch extends Solver{
     }
 
     private Function<Movement, Node> createChildNode(Node root) {
-        return m -> new Node(m, root);
+        return m -> new Node(m, root, root.childDepth());
     }
 
     private Consumer<Node> addToStackAndParent(Deque<Node> stack, Node parent) {
@@ -86,51 +66,49 @@ public class DepthFirstSearch extends Solver{
     private static class Task extends RecursiveTask<Node> {
         private final Node root;
         private final Vials vials;
+        private final AtomicBoolean solutionFound;
 
-        public Task(Node root, Vials vials) {
+        public Task(Node root, Vials vials, AtomicBoolean solutionFound) {
             this.root = root;
             this.vials = vials;
+            this.solutionFound = solutionFound;
         }
 
-
         @Override
-        protected Node compute()  {
-            Deque<Node> stack = new ArrayDeque<>();
-            stack.push(root);
-
-            while (!stack.isEmpty()) {
-                Node currentRoot = stack.peek();
-
-                if (Objects.isNull(currentRoot)) {
-                    throw new AssertionError("Root node is null!");
-                }
-
-                if (currentRoot.isSolution(vials)) {
-                    return currentRoot;
-                }
-
-                var tasks = vials.generatePossibleMoves()
-                        .map(movement -> new Node(movement, currentRoot))
-                        .map(childNode -> {
-                            Vials copyVials = vials.copy();
-                            copyVials.applyMovement(childNode.getMovement());
-                            return new Task(childNode, copyVials);
-                        })
-                        .toList();
-
-                invokeAll(tasks);
-
-                for (Task task : tasks) {
-                    Node result = task.join();
-                    if (result != null) {
-                        return result;
-                    }
-                }
-
-                stack.pop();
-                currentRoot.removeFromParent();
-                vials.reverseMove();
+        protected Node compute() {
+            if (solutionFound.get()) {
+                return null; // Stop processing if a solution is already found
             }
+
+            if (Objects.isNull(root)) {
+                throw new AssertionError("Root node is null!");
+            }
+
+            if (root.isSolution(vials)) {
+                solutionFound.set(true);
+                return root;
+            }
+
+            var tasks = vials.generatePossibleMoves()
+                    .map(movement -> new Node(movement, root, root.childDepth()))
+                    .map(childNode -> {
+                        Vials copyVials = vials.copy();
+                        copyVials.applyMovement(childNode.getMovement());
+                        return new Task(childNode, copyVials, solutionFound);
+                    })
+                    .toList();
+
+            Optional<Node> outcome = invokeAll(tasks.stream().takeWhile(t -> !solutionFound.get()).toList()).stream()
+                    .map(Task::join)
+                    .filter(Objects::nonNull)
+                    .min(Comparator.comparingLong(Node::getDepth));
+
+            if (outcome.isPresent()) {
+                return outcome.get();
+            }
+
+            root.removeFromParent();
+            vials.reverseMove();
 
             return null;
         }
